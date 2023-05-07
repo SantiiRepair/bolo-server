@@ -1,4 +1,4 @@
-module com.bolotoken.wallet
+module com.bolotoken.server
 
 go 1.16
 
