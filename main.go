@@ -17,6 +17,7 @@ type FcmMessage struct {
 type FcmNotification struct {
 	Title string `json:"title"`
 	Body  string `json:"body"`
+	Lang  string `json:"lang,omitempty"`
 }
 
 func main() {
@@ -34,6 +35,7 @@ func main() {
 	notification := &FcmNotification{
 		Title: "Notification title",
 		Body:  "Notification body",
+		Lang:  "en", // Set notification language to English.
 	}
 
 	message := &FcmMessage{
@@ -77,4 +79,3 @@ func main() {
 		fmt.Println("Error sending notification:", string(responseBody))
 	}
 }
-
