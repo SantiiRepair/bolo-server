@@ -1,104 +1,80 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"time"
-
-	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
-type Notification struct {
-	To       string            `json:"to"`
-	Data     map[string]string `json:"data"`
-	Notification map[string]string `json:"notification"`
+type FcmMessage struct {
+	To           string            `json:"to"`
+	Data         map[string]string `json:"data"`
+	Notification *FcmNotification  `json:"notification,omitempty"`
+}
+
+type FcmNotification struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
 }
 
 func main() {
-	router := mux.NewRouter()
-	router.HandleFunc("/send", sendNotification).Methods("POST")
 
-	srv := &http.Server{
-		Handler:      router,
-		Addr:         "127.0.0.1:8080",
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-
-	// Iniciar el servidor HTTP
-	log.Info("Iniciando servidor...")
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("Error al iniciar el servidor:", err)
-	}
-}
-
-func sendNotification(w http.ResponseWriter, r *http.Request) {
-	var notification Notification
-	err := json.NewDecoder(r.Body).Decode(&notification)
+	secretKey, err := ioutil.ReadFile("fcm_secret.txt")
 	if err != nil {
-		log.Error("Error al decodificar el cuerpo de la solicitud:", err)
-		http.Error(w, "Error al decodificar el cuerpo de la solicitud", http.StatusBadRequest)
+		fmt.Println("Error reading secret key file:", err)
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss": "fcm_project_id",
-		"sub": "fcm_sender_id",
-		"aud": "https://fcm.googleapis.com/",
-		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Hour * 24).Unix(),
-	})
+	data := map[string]string{
+		"message": "Test message",
+	}
 
-	key := []byte("your_fcm_server_key")
-	tokenString, err := token.SignedString(key)
+	notification := &FcmNotification{
+		Title: "Notification title",
+		Body:  "Notification body",
+	}
+
+	message := &FcmMessage{
+		To:           "/topics/all",
+		Data:         data,
+		Notification: notification,
+	}
+
+	jsonMessage, err := json.Marshal(message)
 	if err != nil {
-		log.Error("Error al firmar el token de autenticación:", err)
-		http.Error(w, "Error al firmar el token de autenticación", http.StatusInternalServerError)
+		fmt.Println("Error encoding message:", err)
 		return
 	}
 
-	jsonBody, err := json.Marshal(notification)
+	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/fcm/send", bytes.NewBuffer(jsonMessage))
 	if err != nil {
-		log.Error("Error al convertir la notificación a JSON:", err)
-		http.Error(w, "Error al convertir la notificación a JSON", http.StatusInternalServerError)
+		fmt.Println("Error creating request:", err)
 		return
 	}
 
-	req, err := http.NewRequest("POST", "https://fcm.googleapis.com/fcm/send", bytes.NewBuffer(jsonBody))
-	if err != nil {
-		log.Error("Error al crear la solicitud HTTP:", err)
-		http.Error(w, "Error al crear la solicitud HTTP", http.StatusInternalServerError)
-		return
-	}
-
-	req.Header.Add("Authorization", "Bearer "+tokenString)
-	req.Header.Add("Content-Type", "application/json")
+	request.Header.Set("Authorization", "key="+string(secretKey))
+	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
-	resp, err := client.Do(req)
+	response, err := client.Do(request)
 	if err != nil {
-		log.Error("Error al enviar la notificación:", err)
-		http.Error(w, "Error al enviar la notificación", http.StatusInternalServerError)
+		fmt.Println("Error sending request:", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		log.Error("Error de respuesta de la API de FCM:", resp.Status)
-		http.Error(w, "Error de respuesta de la API de FCM", http.StatusInternalServerError)
-		return
-	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Error("Error al leer la respuesta de la API de FCM:", err)
-		http.Error(w, "Error al leer la respuesta de la API de FCM", http.StatusInternalServerError)
+		fmt.Println("Error reading response:", err)
 		return
 	}
-	log.Info("Respuesta de la API de FCM:", string(respBody))
 
-	fmt.Fprint(w, "Notificación enviada correctamente")
+	if response.StatusCode == http.StatusOK {
+		fmt.Println("Notification sent successfully:", string(responseBody))
+	} else {
+		fmt.Println("Error sending notification:", string(responseBody))
+	}
 }
+
