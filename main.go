@@ -35,7 +35,7 @@ func main() {
 	notification := &FcmNotification{
 		Title: "Notification title",
 		Body:  "Notification body",
-		Lang:  "en", // Set notification language to English.
+		Lang:  "en",
 	}
 
 	message := &FcmMessage{
