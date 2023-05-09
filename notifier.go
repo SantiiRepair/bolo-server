@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
 )
 
 type FcmMessage struct {
@@ -22,20 +27,36 @@ type FcmNotification struct {
 }
 
 func main() {
+
 	titleFlag := flag.String("title", "", "Title of the notification")
 	bodyFlag := flag.String("body", "", "Body of the notification")
-	//langFlag := flag.String("lang", "en", "Language of the notification")
 	flag.Parse()
-
-	secretKey, err := ioutil.ReadFile("fcm_secret.txt")
-	if err != nil {
-		fmt.Println("Error reading secret key file:", err)
-		return
-	}
 
 	title := *titleFlag
 	body := *bodyFlag
-	//lang := *langFlag
+
+
+	configData, err := ioutil.ReadFile("config.txt")
+	if err != nil {
+		fmt.Println("Error reading config file:", err)
+		return
+	}
+
+	configLines := strings.Split(string(configData), "\n")
+	if len(configLines) < 2 {
+		fmt.Println("Invalid config file")
+		return
+	}
+
+
+	creds, err := google.CredentialsFromJSON(
+		oauth2.NoContext, []byte(configData), "https://www.googleapis.com/auth/cloud-platform",
+	)
+	if err != nil {
+		fmt.Println("Error creating credentials:", err)
+		return
+	}
+
 
 	data := map[string]string{
 		"message": body,
@@ -44,7 +65,6 @@ func main() {
 	notification := &FcmNotification{
 		Title: title,
 		Body:  body,
-		//Lang:  lang,
 	}
 
 	message := &FcmMessage{
@@ -59,14 +79,19 @@ func main() {
 		return
 	}
 
-	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/v1/projects/320851656039/messages:send", bytes.NewBuffer(jsonMessage))
+	// Send FCM message
+	projectID := strings.TrimSpace(configLines[0])
+	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", projectID)
+
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonMessage))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
 	}
 
-	request.Header.Set("Authorization", "key="+string(secretKey))
+	request.Header.Set("Authorization", "Bearer "+creds.TokenSource.Token().AccessToken)
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-GOOG-API-FORMAT-VERSION", "2")
 
 	client := &http.Client{}
 	response, err := client.Do(request)
