@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,6 +22,10 @@ type FcmNotification struct {
 }
 
 func main() {
+	titleFlag := flag.String("title", "", "Title of the notification")
+	bodyFlag := flag.String("body", "", "Body of the notification")
+	langFlag := flag.String("lang", "en", "Language of the notification")
+	flag.Parse()
 
 	secretKey, err := ioutil.ReadFile("fcm_secret.txt")
 	if err != nil {
@@ -28,18 +33,21 @@ func main() {
 		return
 	}
 
+	title := *titleFlag
+	body := *bodyFlag
+	lang := *langFlag
+
 	data := map[string]string{
-		"message": "Test message",
+		"message": body,
 	}
 
 	notification := &FcmNotification{
-		Title: "Notification title",
-		Body:  "Notification body",
-		Lang:  "en",
+		Title: title,
+		Body:  body,
+		Lang:  lang,
 	}
 
 	message := &FcmMessage{
-		To:           "/topics/all",
 		Data:         data,
 		Notification: notification,
 	}
@@ -50,7 +58,7 @@ func main() {
 		return
 	}
 
-	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/fcm/send", bytes.NewBuffer(jsonMessage))
+	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/v1/bolo-wallet-test/messages:send", bytes.NewBuffer(jsonMessage))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
