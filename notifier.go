@@ -24,7 +24,7 @@ type FcmNotification struct {
 func main() {
 	titleFlag := flag.String("title", "", "Title of the notification")
 	bodyFlag := flag.String("body", "", "Body of the notification")
-	langFlag := flag.String("lang", "en", "Language of the notification")
+	//langFlag := flag.String("lang", "en", "Language of the notification")
 	flag.Parse()
 
 	secretKey, err := ioutil.ReadFile("fcm_secret.txt")
@@ -35,7 +35,7 @@ func main() {
 
 	title := *titleFlag
 	body := *bodyFlag
-	lang := *langFlag
+	//lang := *langFlag
 
 	data := map[string]string{
 		"message": body,
@@ -44,7 +44,7 @@ func main() {
 	notification := &FcmNotification{
 		Title: title,
 		Body:  body,
-		Lang:  lang,
+		//Lang:  lang,
 	}
 
 	message := &FcmMessage{
