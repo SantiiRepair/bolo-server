@@ -48,6 +48,7 @@ func main() {
 	}
 
 	message := &FcmMessage{
+		To:           "/topics/all",
 		Data:         data,
 		Notification: notification,
 	}
@@ -58,7 +59,7 @@ func main() {
 		return
 	}
 
-	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/v1/320851656039/messages:send", bytes.NewBuffer(jsonMessage))
+	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/fcm/send", bytes.NewBuffer(jsonMessage))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
