@@ -6,7 +6,12 @@
   "tasks": {
     "go run": {
       "name": "Run",
-      "command": "go run bolo-notifier/notifier.go",
+      "command": "go run notifier.go",
+      "runAtStart": true
+    },
+    "go get": {
+      "name": "Get",
+      "command": "go get",
       "runAtStart": true
     }
   }
