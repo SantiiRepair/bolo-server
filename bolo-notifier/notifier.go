@@ -1,4 +1,4 @@
-package notifier
+package main
 
 import (
 	"bytes"
@@ -58,7 +58,7 @@ func main() {
 		return
 	}
 
-	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/v1/bolo-wallet-test/messages:send", bytes.NewBuffer(jsonMessage))
+	request, err := http.NewRequest("POST", "https://fcm.googleapis.com/v1/320851656039/messages:send", bytes.NewBuffer(jsonMessage))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
